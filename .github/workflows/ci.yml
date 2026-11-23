@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.target }}
+      - name: Install musl C compiler
+        if: endsWith(matrix.target, '-linux-musl')
+        shell: bash
+        env:
+          CARGO_BUILD_TARGET: ${{ matrix.target }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          printf 'CC_%s=musl-gcc\n' "${CARGO_BUILD_TARGET//-/_}" >> "$GITHUB_ENV"
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - uses: taiki-e/install-action@fe3acb53a98b62c772db35de75ce0e4595e7ca8c # v2.90.8
+        with:
+          tool: just,cargo-deny@0.22.0
+          fallback: cargo-install
+      - run: just check
+        env:
+          CARGO_BUILD_TARGET: ${{ matrix.target }}
+      - name: Verify static musl binaries
+        if: endsWith(matrix.target, '-linux-musl')
+        shell: bash
+        env:
+          CARGO_BUILD_TARGET: ${{ matrix.target }}
+        run: |
+          for binary in headnote headnote-core; do
+            path="target/$CARGO_BUILD_TARGET/debug/$binary"
+            if [[ ! -f "$path" ]]; then
+              printf 'Missing binary: %s\n' "$path" >&2
+              exit 1
+            fi
+            description=$(file -b -- "$path")
+            case "$description" in
+              *"statically linked"*|*"static-pie linked"*) printf '%s: %s\n' "$path" "$description" ;;
+              *) printf 'Expected a statically linked binary: %s: %s\n' "$path" "$description" >&2; exit 1 ;;
+            esac
+          done
