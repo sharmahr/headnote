@@ -1,0 +1,36 @@
+[advisories]
+unmaintained = "all"
+unsound = "all"
+
+[licenses]
+include-dev = true
+# The allow list is the §8.5 policy, not the current dependency set.
+unused-allowed-license = "allow"
+allow = [
+    "Apache-2.0",
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+]
+
+[bans]
+deny = [
+    "gix-transport",
+    "reqwest",
+    "hyper",
+    "ureq",
+    "curl",
+    "curl-sys",
+    "openssl",
+    "openssl-sys",
+    "native-tls",
+    "rustls",
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

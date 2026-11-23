@@ -45,4 +45,4 @@ Headnote fails open for delivery and closed for privacy (§2.1 principle 6, §6)
 
 ## 3. Done means `just check` passes
 
-Work is done only when `just check` passes, locally and in CI. It runs the formatter check (`cargo fmt --all --check`), `cargo clippy` with `-D warnings`, and every test; the `justfile` holds the exact commands. Don't reach green by weakening the gate (silencing lints, ignoring or deleting tests, shrinking proptest cases); fix the cause.
+Work is done only when `just check` passes, locally and in CI. It runs the formatter check (`cargo fmt --all --check`), `cargo clippy` with `-D warnings`, every test, and `cargo-deny` (`cargo deny --locked check`); the `justfile` holds the exact commands. Don't reach green by weakening the gate (silencing lints, ignoring or deleting tests, shrinking proptest cases); fix the cause.
