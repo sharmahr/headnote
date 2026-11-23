@@ -10,6 +10,7 @@ clippy:
     cargo clippy --workspace --all-targets --locked -- -D warnings
 
 test:
+    cargo build --workspace --bins --locked
     cargo test --workspace --locked
 
 deny:
